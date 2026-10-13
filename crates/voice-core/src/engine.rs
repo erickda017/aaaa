@@ -156,15 +156,19 @@ impl Engine {
         }
 
         self.bass.set_from(&Biquad::low_shelf(fs, 150.0, s.bass_db));
-        self.mud.set_from(&Biquad::peak(fs, 380.0, 1.0, s.mud_cut_db));
-        self.presence.set_from(&Biquad::peak(fs, 2800.0, 0.9, s.presence_db));
+        self.mud
+            .set_from(&Biquad::peak(fs, 380.0, 1.0, s.mud_cut_db));
+        self.presence
+            .set_from(&Biquad::peak(fs, 2800.0, 0.9, s.presence_db));
         self.air.set_from(&Biquad::high_shelf(fs, 7000.0, s.air_db));
-        self.reverb.set_params(s.reverb_size, s.reverb_damp, s.reverb_predelay_ms);
+        self.reverb
+            .set_params(s.reverb_size, s.reverb_damp, s.reverb_predelay_ms);
 
         self.comp.threshold_db = s.comp_threshold_db;
         self.comp.ratio = s.comp_ratio;
-        // Compensação automática de ganho: metade da redução máxima a -0 dBFS.
-        self.comp.makeup_db = (-s.comp_threshold_db * (1.0 - 1.0 / s.comp_ratio)) * 0.4;
+        // Sem makeup automático: com o sinal abaixo do limiar ele só amplificaria ruído.
+        // O volume final é ajustado em `output_gain_db`.
+        self.comp.makeup_db = 0.0;
 
         if snap {
             self.in_gain = Smoothed::new(db_to_lin(s.input_gain_db), 20.0, fs);
@@ -197,7 +201,7 @@ impl Engine {
 
     #[inline]
     pub fn process(&mut self, input: f32) -> f32 {
-        let x = input * self.in_gain.next();
+        let x = input * self.in_gain.tick();
         let bypass = x;
 
         let xg = self.gate.process(x);
@@ -214,18 +218,22 @@ impl Engine {
 
         // sopro: ruído de alta frequência seguindo o envelope da fala
         let a = xg.abs();
-        let c = if a > self.breath_env { self.breath_env_att } else { self.breath_env_rel };
+        let c = if a > self.breath_env {
+            self.breath_env_att
+        } else {
+            self.breath_env_rel
+        };
         self.breath_env = a + (self.breath_env - a) * c;
-        let hiss = self.breath_hp.process(self.noise.next());
+        let hiss = self.breath_hp.process(self.noise.tick());
 
-        let mut v = xg * self.dry.next()
-            + main * self.main.next()
-            + sub * self.sub.next()
-            + ghost * self.ghost.next()
-            + hiss * (self.breath_env * 3.0).min(0.5) * self.breath.next();
+        let mut v = xg * self.dry.tick()
+            + main * self.main.tick()
+            + sub * self.sub.tick()
+            + ghost * self.ghost.tick()
+            + hiss * (self.breath_env * 3.0).min(0.5) * self.breath.tick();
 
         // --- growl: AM rápida ---
-        let depth = self.growl_depth.next();
+        let depth = self.growl_depth.tick();
         if depth > 0.001 {
             self.growl_phase += self.s.growl_hz / self.fs;
             self.growl_phase -= self.growl_phase.floor();
@@ -234,7 +242,7 @@ impl Engine {
         }
 
         // --- saturação paralela ---
-        let drive = self.drive.next();
+        let drive = self.drive.tick();
         if drive > 0.001 {
             let h = self.pre_sat_hp.process(v);
             let g = 1.0 + drive * 9.0;
@@ -251,14 +259,14 @@ impl Engine {
         v = self.air.process(v);
 
         // --- reverb ---
-        v += self.reverb.process(v) * self.reverb_mix.next();
+        v += self.reverb.process(v) * self.reverb_mix.tick();
 
         // --- dinâmica e ganho ---
         v = self.comp.process(v);
-        v *= self.out_gain.next();
+        v *= self.out_gain.tick();
 
         // --- bypass com crossfade ---
-        let w = self.wet.next();
+        let w = self.wet.tick();
         let out = self.limiter.process(v * w + bypass * (1.0 - w));
 
         // medidores (pico com decaimento)

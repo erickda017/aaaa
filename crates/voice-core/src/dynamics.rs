@@ -36,7 +36,11 @@ impl Gate {
             return x;
         }
         let a = x.abs();
-        self.env = if a > self.env { a } else { a + (self.env - a) * self.env_rel };
+        self.env = if a > self.env {
+            a
+        } else {
+            a + (self.env - a) * self.env_rel
+        };
         let db = lin_to_db(self.env);
         if db > self.threshold_db {
             self.open = true;
@@ -49,7 +53,11 @@ impl Gate {
             }
         }
         let target = if self.open { 1.0 } else { 0.0 };
-        let c = if target > self.gain { self.gain_att } else { self.gain_rel };
+        let c = if target > self.gain {
+            self.gain_att
+        } else {
+            self.gain_rel
+        };
         self.gain = target + (self.gain - target) * c;
         x * self.gain
     }
@@ -91,7 +99,11 @@ impl Compressor {
             self.threshold_db + over / self.ratio
         };
         let target = out_db - x_db; // <= 0
-        let c = if target < self.gr_db { self.att } else { self.rel };
+        let c = if target < self.gr_db {
+            self.att
+        } else {
+            self.rel
+        };
         self.gr_db = target + (self.gr_db - target) * c;
         x * db_to_lin(self.gr_db + self.makeup_db)
     }
@@ -111,13 +123,21 @@ pub struct Limiter {
 
 impl Limiter {
     pub fn new(fs: f32) -> Self {
-        Self { gain: 1.0, rel: time_coeff(60.0, fs), ceiling: db_to_lin(-1.0) }
+        Self {
+            gain: 1.0,
+            rel: time_coeff(60.0, fs),
+            ceiling: db_to_lin(-1.0),
+        }
     }
 
     #[inline]
     pub fn process(&mut self, x: f32) -> f32 {
         let a = x.abs();
-        let target = if a * self.gain > self.ceiling { self.ceiling / a } else { 1.0 };
+        let target = if a * self.gain > self.ceiling {
+            self.ceiling / a
+        } else {
+            1.0
+        };
         if target < self.gain {
             self.gain = target;
         } else {

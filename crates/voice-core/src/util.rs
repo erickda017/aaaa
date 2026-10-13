@@ -26,7 +26,11 @@ pub struct Smoothed {
 
 impl Smoothed {
     pub fn new(value: f32, ms: f32, fs: f32) -> Self {
-        Self { value, target: value, coeff: time_coeff(ms, fs) }
+        Self {
+            value,
+            target: value,
+            coeff: time_coeff(ms, fs),
+        }
     }
 
     #[inline]
@@ -35,7 +39,7 @@ impl Smoothed {
     }
 
     #[inline]
-    pub fn next(&mut self) -> f32 {
+    pub fn tick(&mut self) -> f32 {
         self.value = self.target + (self.value - self.target) * self.coeff;
         self.value
     }
@@ -55,7 +59,7 @@ impl Noise {
     }
 
     #[inline]
-    pub fn next(&mut self) -> f32 {
+    pub fn tick(&mut self) -> f32 {
         let mut x = self.0;
         x ^= x << 13;
         x ^= x >> 17;

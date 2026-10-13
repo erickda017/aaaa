@@ -7,7 +7,9 @@ use voice_core::{Engine, Settings, builtin_presets};
 const FS: f32 = 48_000.0;
 
 fn sine(freq: f32, amp: f32, secs: f32) -> Vec<f32> {
-    (0..(FS * secs) as usize).map(|n| amp * (TAU * freq * n as f32 / FS).sin()).collect()
+    (0..(FS * secs) as usize)
+        .map(|n| amp * (TAU * freq * n as f32 / FS).sin())
+        .collect()
 }
 
 /// Frequência dominante: varre a magnitude da DFT em passos de 0,25 Hz perto do alvo
@@ -34,7 +36,6 @@ fn peak_freq(x: &[f32], around: f32) -> f32 {
     best_f
 }
 
-
 /// Roda shifter (+ detector de período, opcional) como o `Engine` faz.
 fn run_shifter(input: &[f32], semi: f32, sync: bool) -> Vec<f32> {
     let mut ps = PitchShifter::new(FS, 32.0);
@@ -43,10 +44,10 @@ fn run_shifter(input: &[f32], semi: f32, sync: bool) -> Vec<f32> {
     input
         .iter()
         .map(|&s| {
-            if let Some(p) = tr.process(s) {
-                if sync {
-                    ps.set_period(p);
-                }
+            if let Some(p) = tr.process(s)
+                && sync
+            {
+                ps.set_period(p);
             }
             ps.process(s)
         })
@@ -62,7 +63,10 @@ fn vowel(f0_start: f32, f0_end: f32, secs: f32) -> Vec<f32> {
             let f0 = f0_start + (f0_end - f0_start) * i as f32 / n as f32;
             phase += f0 / FS;
             phase -= phase.floor();
-            (1..=25).map(|h| (TAU * h as f32 * phase).sin() / (h * h) as f32).sum::<f32>() * 0.5
+            (1..=25)
+                .map(|h| (TAU * h as f32 * phase).sin() / (h * h) as f32)
+                .sum::<f32>()
+                * 0.5
         })
         .collect()
 }
@@ -71,8 +75,11 @@ fn vowel(f0_start: f32, f0_end: f32, secs: f32) -> Vec<f32> {
 fn envelope_flutter(x: &[f32]) -> f32 {
     let w = (FS * 0.030) as usize;
     let seg = &x[x.len() / 4..x.len() * 3 / 4];
-    let env: Vec<f32> =
-        seg.chunks(w).filter(|c| c.len() == w).map(|c| (c.iter().map(|v| v * v).sum::<f32>() / w as f32).sqrt()).collect();
+    let env: Vec<f32> = seg
+        .chunks(w)
+        .filter(|c| c.len() == w)
+        .map(|c| (c.iter().map(|v| v * v).sum::<f32>() / w as f32).sqrt())
+        .collect();
     let mean = env.iter().sum::<f32>() / env.len() as f32;
     let var = env.iter().map(|e| (e - mean).powi(2)).sum::<f32>() / env.len() as f32;
     var.sqrt() / mean
@@ -80,11 +87,19 @@ fn envelope_flutter(x: &[f32]) -> f32 {
 
 #[test]
 fn pitch_shifter_hits_target_frequency() {
-    for (semi, expect) in [(-12.0f32, 110.0f32), (-7.0, 146.83), (-3.0, 185.0), (5.0, 293.66)] {
+    for (semi, expect) in [
+        (-12.0f32, 110.0f32),
+        (-7.0, 146.83),
+        (-3.0, 185.0),
+        (5.0, 293.66),
+    ] {
         let out = run_shifter(&sine(220.0, 0.5, 3.0), semi, true);
         let f = peak_freq(&out, expect);
         let err = (f - expect).abs() / expect;
-        assert!(err < 0.03, "shift {semi}: esperado {expect} Hz, medido {f} Hz");
+        assert!(
+            err < 0.03,
+            "shift {semi}: esperado {expect} Hz, medido {f} Hz"
+        );
     }
 }
 
@@ -105,7 +120,7 @@ fn bypass_is_transparent() {
     e.set_settings(&Settings::diabo());
     e.set_active(false);
     let mut n = Noise::new(7);
-    let input: Vec<f32> = (0..48_000).map(|_| n.next() * 0.3).collect();
+    let input: Vec<f32> = (0..48_000).map(|_| n.tick() * 0.3).collect();
     let mut max_diff = 0.0f32;
     for (i, &x) in input.iter().enumerate() {
         let y = e.process(x);
@@ -128,7 +143,11 @@ fn output_is_bounded_and_finite_for_all_presets() {
         let mut n = Noise::new(99);
         // ruído alto e senoide clipada, os piores casos
         for i in 0..(FS as usize * 2) {
-            let x = if i < FS as usize { n.next() * 2.0 } else { (TAU * 150.0 * i as f32 / FS).sin() * 3.0 };
+            let x = if i < FS as usize {
+                n.tick() * 2.0
+            } else {
+                (TAU * 150.0 * i as f32 / FS).sin() * 3.0
+            };
             let y = e.process(x);
             assert!(y.is_finite(), "NaN/inf");
             assert!(y.abs() <= 0.8914, "estourou o teto: {y}");
@@ -149,7 +168,7 @@ fn survives_garbage_settings() {
     e.set_active(true);
     let mut n = Noise::new(5);
     for _ in 0..FS as usize {
-        let y = e.process(n.next() * 0.5);
+        let y = e.process(n.tick() * 0.5);
         assert!(y.is_finite() && y.abs() <= 0.8914);
     }
 }
@@ -183,7 +202,7 @@ fn works_at_other_sample_rates() {
         e.set_active(true);
         let mut n = Noise::new(3);
         for _ in 0..fs as usize {
-            let y = e.process(n.next() * 0.4);
+            let y = e.process(n.tick() * 0.4);
             assert!(y.is_finite() && y.abs() <= 0.8914, "fs {fs}");
         }
     }
@@ -192,7 +211,11 @@ fn works_at_other_sample_rates() {
 #[test]
 fn latency_is_reasonable() {
     let e = Engine::new(FS);
-    assert!(e.latency_ms() < 25.0, "latência estimada {} ms", e.latency_ms());
+    assert!(
+        e.latency_ms() < 25.0,
+        "latência estimada {} ms",
+        e.latency_ms()
+    );
 }
 
 #[test]
@@ -201,7 +224,10 @@ fn period_sync_reduces_tremolo_on_voiced_speech() {
     let plain = envelope_flutter(&run_shifter(&input, -7.0, false));
     let synced = envelope_flutter(&run_shifter(&input, -7.0, true));
     println!("flutter sem sync = {plain:.3}, com sync = {synced:.3}");
-    assert!(synced < plain * 0.6, "sync deveria reduzir o tremolo: {plain} -> {synced}");
+    assert!(
+        synced < plain * 0.6,
+        "sync deveria reduzir o tremolo: {plain} -> {synced}"
+    );
     assert!(synced < 0.12, "tremolo ainda alto: {synced}");
 }
 

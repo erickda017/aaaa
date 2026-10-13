@@ -97,7 +97,11 @@ impl PeriodTracker {
                 d += diff * diff;
             }
             running += d;
-            self.cmnd[tau] = if running > 0.0 { d * tau as f32 / running } else { 1.0 };
+            self.cmnd[tau] = if running > 0.0 {
+                d * tau as f32 / running
+            } else {
+                1.0
+            };
         }
 
         let mut tau = self.tau_min;
@@ -109,7 +113,11 @@ impl PeriodTracker {
                 // interpolação parabólica
                 let (a, b, c) = (self.cmnd[tau - 1], self.cmnd[tau], self.cmnd[tau + 1]);
                 let denom = a - 2.0 * b + c;
-                let shift = if denom.abs() > 1e-9 { 0.5 * (a - c) / denom } else { 0.0 };
+                let shift = if denom.abs() > 1e-9 {
+                    0.5 * (a - c) / denom
+                } else {
+                    0.0
+                };
                 return Some((tau as f32 + shift.clamp(-1.0, 1.0)) * self.decim as f32);
             }
             tau += 1;

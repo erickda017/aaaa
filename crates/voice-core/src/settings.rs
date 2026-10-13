@@ -110,7 +110,7 @@ impl Settings {
             reverb_predelay_ms: 28.0,
             comp_threshold_db: -20.0,
             comp_ratio: 3.5,
-            output_gain_db: 2.0,
+            output_gain_db: 2.7,
             ..Self::neutral()
         }
     }
@@ -138,7 +138,7 @@ impl Settings {
             reverb_predelay_ms: 45.0,
             comp_threshold_db: -24.0,
             comp_ratio: 4.0,
-            output_gain_db: 4.0,
+            output_gain_db: 4.4,
             ..Self::neutral()
         }
     }
@@ -168,7 +168,7 @@ impl Settings {
             reverb_predelay_ms: 35.0,
             comp_threshold_db: -22.0,
             comp_ratio: 4.0,
-            output_gain_db: 3.0,
+            output_gain_db: 2.7,
             ..Self::neutral()
         }
     }
@@ -190,7 +190,7 @@ impl Settings {
             reverb_size: 0.4,
             comp_threshold_db: -20.0,
             comp_ratio: 3.0,
-            output_gain_db: 1.0,
+            output_gain_db: 2.3,
             ..Self::neutral()
         }
     }
@@ -199,11 +199,20 @@ impl Settings {
     /// NaN, etc.).
     pub fn sanitized(mut self) -> Self {
         fn c(v: &mut f32, lo: f32, hi: f32, default: f32) {
-            *v = if v.is_finite() { v.clamp(lo, hi) } else { default };
+            *v = if v.is_finite() {
+                v.clamp(lo, hi)
+            } else {
+                default
+            };
         }
         let d = Settings::neutral();
         c(&mut self.input_gain_db, -24.0, 24.0, d.input_gain_db);
-        c(&mut self.gate_threshold_db, -80.0, -10.0, d.gate_threshold_db);
+        c(
+            &mut self.gate_threshold_db,
+            -80.0,
+            -10.0,
+            d.gate_threshold_db,
+        );
         c(&mut self.dry_level, 0.0, 2.0, d.dry_level);
         c(&mut self.main_semitones, -24.0, 12.0, d.main_semitones);
         c(&mut self.main_level, 0.0, 2.0, d.main_level);
@@ -223,7 +232,12 @@ impl Settings {
         c(&mut self.reverb_mix, 0.0, 1.0, d.reverb_mix);
         c(&mut self.reverb_size, 0.0, 1.0, d.reverb_size);
         c(&mut self.reverb_damp, 0.0, 0.95, d.reverb_damp);
-        c(&mut self.reverb_predelay_ms, 0.0, 200.0, d.reverb_predelay_ms);
+        c(
+            &mut self.reverb_predelay_ms,
+            0.0,
+            200.0,
+            d.reverb_predelay_ms,
+        );
         c(&mut self.comp_threshold_db, -50.0, 0.0, d.comp_threshold_db);
         c(&mut self.comp_ratio, 1.0, 20.0, d.comp_ratio);
         c(&mut self.output_gain_db, -24.0, 24.0, d.output_gain_db);

@@ -8,7 +8,11 @@ struct Comb {
 
 impl Comb {
     fn new(len: usize) -> Self {
-        Self { buf: vec![0.0; len.max(1)], idx: 0, filt: 0.0 }
+        Self {
+            buf: vec![0.0; len.max(1)],
+            idx: 0,
+            filt: 0.0,
+        }
     }
 
     #[inline]
@@ -31,7 +35,10 @@ struct Allpass {
 
 impl Allpass {
     fn new(len: usize) -> Self {
-        Self { buf: vec![0.0; len.max(1)], idx: 0 }
+        Self {
+            buf: vec![0.0; len.max(1)],
+            idx: 0,
+        }
     }
 
     #[inline]
@@ -68,7 +75,10 @@ impl Reverb {
         let max_pd = (0.2 * fs) as usize + 1;
         let mut r = Self {
             combs: COMB_TUNING.iter().map(|&n| Comb::new(sc(n))).collect(),
-            allpasses: ALLPASS_TUNING.iter().map(|&n| Allpass::new(sc(n))).collect(),
+            allpasses: ALLPASS_TUNING
+                .iter()
+                .map(|&n| Allpass::new(sc(n)))
+                .collect(),
             predelay: vec![0.0; max_pd],
             pd_idx: 0,
             pd_len: 1,
@@ -84,7 +94,8 @@ impl Reverb {
     pub fn set_params(&mut self, size: f32, damp: f32, predelay_ms: f32) {
         self.feedback = 0.70 + 0.28 * size.clamp(0.0, 1.0);
         self.damp = damp.clamp(0.0, 0.95);
-        self.pd_len = ((predelay_ms.clamp(0.0, 200.0) * 0.001 * self.fs) as usize).clamp(1, self.predelay.len());
+        self.pd_len = ((predelay_ms.clamp(0.0, 200.0) * 0.001 * self.fs) as usize)
+            .clamp(1, self.predelay.len());
     }
 
     /// Retorna apenas o sinal "molhado".

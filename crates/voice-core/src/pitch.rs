@@ -115,7 +115,7 @@ impl PitchShifter {
         self.write += 1;
         self.buf[(self.write & self.mask) as usize] = x;
 
-        let ratio = (self.semitones.next() / 12.0).exp2();
+        let ratio = (self.semitones.tick() / 12.0).exp2();
         self.grain += (self.grain_goal - self.grain).clamp(-GRAIN_SLEW, GRAIN_SLEW);
 
         let p1 = self.phase;

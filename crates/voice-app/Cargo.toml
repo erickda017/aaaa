@@ -1,0 +1,24 @@
+[package]
+name = "voice-app"
+description = "Alterador de voz em tempo real: microfone → efeitos → cabo de áudio virtual"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "voz-do-diabo"
+path = "src/main.rs"
+
+[dependencies]
+voice-core = { path = "../voice-core" }
+cpal = "0.18"
+ringbuf = "0.5"
+eframe = { version = "0.36", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "7"
+
+[target.'cfg(windows)'.dependencies]
+# Eleva a prioridade da thread de áudio (menos estalos sob carga).
+cpal = { version = "0.18", features = ["realtime"] }
+windows-sys = { version = "0.61", features = ["Win32_UI_Input_KeyboardAndMouse"] }
