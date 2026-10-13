@@ -70,6 +70,7 @@ Salve o que gostar em *Salvar ajustes atuais*.
 
 ```powershell
 # aplica todos os presets a uma voz sintética e mostra níveis / pitch resultante
+# (os resultados prontos estão em assets/demo/: entrada.wav + um WAV por preset)
 cargo run --release -p voice-core --example render -- todos - saida\
 # ou a uma gravação sua
 cargo run --release -p voice-core --example render -- diabo minha_voz.wav saida\

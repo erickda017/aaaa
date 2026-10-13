@@ -80,6 +80,21 @@ fn median_f0(x: &[f32], fs: f32) -> f32 {
     v[v.len() / 2]
 }
 
+fn write_wav(path: &str, x: &[f32], fs: f32) {
+    let spec = hound::WavSpec {
+        channels: 1,
+        sample_rate: fs as u32,
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
+    let mut w = hound::WavWriter::create(path, spec).expect("não consegui criar o WAV");
+    for s in x {
+        w.write_sample((s.clamp(-1.0, 1.0) * 32767.0) as i16)
+            .unwrap();
+    }
+    w.finalize().unwrap();
+}
+
 fn stats(x: &[f32]) -> (f32, f32) {
     let peak = x.iter().fold(0.0f32, |m, &s| m.max(s.abs()));
     let rms = (x.iter().map(|s| s * s).sum::<f32>() / x.len() as f32).sqrt();
@@ -102,6 +117,7 @@ fn main() {
         ("sussurro", Settings::sussurro()),
         ("sombrio", Settings::sombrio()),
     ];
+    write_wav(&format!("{out_dir}/entrada.wav"), &input, fs);
     let (pk, rms) = stats(&input);
     println!(
         "entrada: {:.1} s @ {fs} Hz, pico {pk:.1} dBFS, RMS {rms:.1} dBFS, f0 mediano {:.0} Hz",
@@ -126,18 +142,6 @@ fn main() {
             e.latency_ms()
         );
 
-        let path = format!("{out_dir}/{name}.wav");
-        let spec = hound::WavSpec {
-            channels: 1,
-            sample_rate: fs as u32,
-            bits_per_sample: 16,
-            sample_format: hound::SampleFormat::Int,
-        };
-        let mut w = hound::WavWriter::create(&path, spec).expect("não consegui criar o WAV");
-        for s in &out {
-            w.write_sample((s.clamp(-1.0, 1.0) * 32767.0) as i16)
-                .unwrap();
-        }
-        w.finalize().unwrap();
+        write_wav(&format!("{out_dir}/{name}.wav"), &out, fs);
     }
 }
