@@ -1,0 +1,12 @@
+[package]
+name = "voice-core"
+description = "Motor de DSP em tempo real para voz demoníaca (pitch, camadas, saturação, EQ, reverb, dinâmica)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+hound = "3.5"
